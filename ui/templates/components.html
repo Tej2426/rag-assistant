@@ -1,0 +1,205 @@
+{% macro button(label, type="button", variant="primary", size="md", class="", disabled=false) %}
+<button 
+    type="{{ type }}"
+    class="
+        inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150
+        focus:outline-none focus:ring-2 focus:ring-offset-2
+        disabled:opacity-50 disabled:pointer-events-none
+        {% if variant == 'primary' %}
+            bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 dark:bg-primary-500 dark:hover:bg-primary-600
+        {% elif variant == 'secondary' %}
+            bg-slate-100 text-slate-900 hover:bg-slate-200 focus:ring-slate-500 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700
+        {% elif variant == 'outline' %}
+            border border-slate-300 bg-transparent hover:bg-slate-100 focus:ring-slate-500 dark:border-slate-600 dark:hover:bg-slate-800
+        {% elif variant == 'ghost' %}
+            bg-transparent hover:bg-slate-100 focus:ring-slate-500 dark:hover:bg-slate-800
+        {% elif variant == 'danger' %}
+            bg-red-600 text-white hover:bg-red-700 focus:ring-red-500
+        {% endif %}
+        {% if size == 'sm' %} px-3 py-1.5 text-sm {% elif size == 'lg' %} px-6 py-3 text-lg {% else %} px-4 py-2 {% endif %}
+        {{ class }}
+    "
+    {% if disabled %}disabled{% endif %}
+    {% for k, v in kwargs.items() %}{{ k }}="{{ v }}" {% endfor %}
+>
+    {{ label }}
+</button>
+{% endmacro %}
+
+{% macro input(name, label="", type="text", placeholder="", value="", required=false, error="", help="", class="") %}
+<div class="w-full">
+    {% if label %}
+    <label for="{{ name }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{{ label }}</label>
+    {% endif %}
+    <input
+        type="{{ type }}"
+        name="{{ name }}"
+        id="{{ name }}"
+        value="{{ value }}"
+        placeholder="{{ placeholder }}"
+        {% if required %}required{% endif %}
+        class="
+            w-full px-3 py-2 rounded-lg border transition-colors duration-150
+            bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100
+            placeholder:text-slate-400 dark:placeholder:text-slate-500
+            {% if error %} border-red-500 focus:ring-red-500 {% else %} border-slate-300 dark:border-slate-600 focus:ring-primary-500 {% endif %}
+            focus:outline-none focus:ring-2 focus:ring-offset-0
+            {{ class }}
+        "
+        {% for k, v in kwargs.items() %}{{ k }}="{{ v }}" {% endfor %}
+    >
+    {% if error %}
+    <p class="mt-1.5 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+    {% elif help %}
+    <p class="mt-1.5 text-sm text-slate-500 dark:text-slate-400">{{ help }}</p>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro textarea(name, label="", placeholder="", value="", required=false, error="", help="", rows=4, class="") %}
+<div class="w-full">
+    {% if label %}
+    <label for="{{ name }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{{ label }}</label>
+    {% endif %}
+    <textarea
+        name="{{ name }}"
+        id="{{ name }}"
+        rows="{{ rows }}"
+        placeholder="{{ placeholder }}"
+        {% if required %}required{% endif %}
+        class="
+            w-full px-3 py-2 rounded-lg border transition-colors duration-150 resize-y min-h-[100px]
+            bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100
+            placeholder:text-slate-400 dark:placeholder:text-slate-500
+            {% if error %} border-red-500 focus:ring-red-500 {% else %} border-slate-300 dark:border-slate-600 focus:ring-primary-500 {% endif %}
+            focus:outline-none focus:ring-2 focus:ring-offset-0
+            {{ class }}
+        "
+        {% for k, v in kwargs.items() %}{{ k }}="{{ v }}" {% endfor %}
+    >{{ value }}</textarea>
+    {% if error %}
+    <p class="mt-1.5 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+    {% elif help %}
+    <p class="mt-1.5 text-sm text-slate-500 dark:text-slate-400">{{ help }}</p>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro select(name, label="", options=[], value="", required=false, error="", help="", class="") %}
+<div class="w-full">
+    {% if label %}
+    <label for="{{ name }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{{ label }}</label>
+    {% endif %}
+    <select
+        name="{{ name }}"
+        id="{{ name }}"
+        {% if required %}required{% endif %}
+        class="
+            w-full px-3 py-2 rounded-lg border transition-colors duration-150 appearance-none
+            bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100
+            {% if error %} border-red-500 focus:ring-red-500 {% else %} border-slate-300 dark:border-slate-600 focus:ring-primary-500 {% endif %}
+            focus:outline-none focus:ring-2 focus:ring-offset-0
+            {{ class }}
+        "
+        {% for k, v in kwargs.items() %}{{ k }}="{{ v }}" {% endfor %}
+    >
+        {% for opt in options %}
+        <option value="{{ opt.value }}" {% if opt.value == value %}selected{% endif %}>{{ opt.label }}</option>
+        {% endfor %}
+    </select>
+    {% if error %}
+    <p class="mt-1.5 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+    {% elif help %}
+    <p class="mt-1.5 text-sm text-slate-500 dark:text-slate-400">{{ help }}</p>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro card(title="", subtitle="", class="") %}
+<div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow duration-200 {{ class }}" {% for k, v in kwargs.items() %}{{ k }}="{{ v }}" {% endfor %}>
+    {% if title or subtitle %}
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        {% if title %}<h3 class="text-lg font-semibold text-slate-900 dark:text-white">{{ title }}</h3>{% endif %}
+        {% if subtitle %}<p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ subtitle }}</p>{% endif %}
+    </div>
+    {% endif %}
+    <div class="p-6">
+{% endmacro %}
+
+{% macro card_end() %}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro badge(text, variant="default", class="") %}
+<span class="
+    inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+    {% if variant == 'default' %} bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300
+    {% elif variant == 'primary' %} bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300
+    {% elif variant == 'success' %} bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300
+    {% elif variant == 'warning' %} bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300
+    {% elif variant == 'danger' %} bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300
+    {% elif variant == 'info' %} bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300
+    {% endif %}
+    {{ class }}
+">{{ text }}</span>
+{% endmacro %}
+
+{% macro skeleton(type="text", lines=1, class="") %}
+<div class="{{ class }}">
+    {% if type == 'text' %}
+    {% for i in range(lines) %}
+    <div class="skeleton h-4 w-{{ 3/4 * 100 | int }}% mb-2 {% if loop.last %}w-{{ 2/3 * 100 | int }}%{% endif %}"></div>
+    {% endfor %}
+    {% elif type == 'card' %}
+    <div class="skeleton aspect-video w-full rounded-xl mb-4"></div>
+    {% for i in range(lines) %}
+    <div class="skeleton h-4 w-{{ 3/4 * 100 | int }}% mb-2 {% if loop.last %}w-{{ 1/2 * 100 | int }}%{% endif %}"></div>
+    {% endfor %}
+    {% elif type == 'avatar' %}
+    <div class="skeleton w-12 h-12 rounded-full"></div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro flash(message, variant="info", dismissible=true) %}
+<div 
+    class="
+        flex items-center gap-3 p-4 rounded-lg border
+        {% if variant == 'success' %} bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400
+        {% elif variant == 'warning' %} bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-400
+        {% elif variant == 'danger' %} bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400
+        {% else %} bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400
+        {% endif %}
+        animate-fade-in
+    "
+    data-flash
+    role="alert"
+>
+    <div class="flex-1">{{ message }}</div>
+    {% if dismissible %}
+    <button onclick="this.parentElement.remove()" class="text-current opacity-50 hover:opacity-100 transition-opacity">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro loading_spinner(size="md", class="") %}
+<div class="
+    animate-spin rounded-full border-2 border-current border-t-transparent
+    {% if size == 'sm' %} w-4 h-4 {% elif size == 'lg' %} w-8 h-8 {% else %} w-6 h-6 {% endif %}
+    {{ class }}
+" aria-hidden="true"></div>
+{% endmacro %}
+
+{% macro empty_state(icon, title, description, action_label="", action_url="", class="") %}
+<div class="text-center py-12 {{ class }}">
+    <div class="mx-auto w-16 h-16 text-slate-300 dark:text-slate-600 mb-4">{{ icon|safe }}</div>
+    <h3 class="text-lg font-medium text-slate-900 dark:text-white mb-2">{{ title }}</h3>
+    <p class="text-slate-500 dark:text-slate-400 mb-6 max-w-sm mx-auto">{{ description }}</p>
+    {% if action_label and action_url %}
+    <a href="{{ action_url }}" class="inline-flex">{{ button(action_label, variant='primary') }}</a>
+    {% endif %}
+</div>
+{% endmacro %}

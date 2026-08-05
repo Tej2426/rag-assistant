@@ -1,0 +1,139 @@
+{% extends "rag_layout.html" %}
+{% import "components.html" as ui %}
+
+{% set page_title = "Evaluation Dashboard" %}
+{% set page_description = "View retrieval and generation quality metrics for the RAG system." %}
+
+{% block page_content %}
+<div class="space-y-8">
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {{ ui.card() }}
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">Context Precision</p>
+                    <p class="text-3xl font-bold text-slate-900 dark:text-white">{{ "%.1f"|format(metrics.context_precision * 100) }}%</p>
+                </div>
+                <div class="w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                </div>
+            </div>
+        {{ ui.card_end() }}
+
+        {{ ui.card() }}
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">Context Recall</p>
+                    <p class="text-3xl font-bold text-slate-900 dark:text-white">{{ "%.1f"|format(metrics.context_recall * 100) }}%</p>
+                </div>
+                <div class="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+            </div>
+        {{ ui.card_end() }}
+
+        {{ ui.card() }}
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">Faithfulness</p>
+                    <p class="text-3xl font-bold text-slate-900 dark:text-white">{{ "%.1f"|format(metrics.faithfulness * 100) }}%</p>
+                </div>
+                <div class="w-16 h-16 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+            </div>
+        {{ ui.card_end() }}
+
+        {{ ui.card() }}
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">Answer Relevancy</p>
+                    <p class="text-3xl font-bold text-slate-900 dark:text-white">{{ "%.1f"|format(metrics.answer_relevancy * 100) }}%</p>
+                </div>
+                <div class="w-16 h-16 rounded-full bg-accent-100 dark:bg-accent-900 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-accent-600 dark:text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                </div>
+            </div>
+        {{ ui.card_end() }}
+    </div>
+
+    <!-- Detailed Results Table -->
+    {{ ui.card(title="Evaluation Results", subtitle="Last run: " ~ last_run ~ " | " ~ (results|length) ~ " test cases") }}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-slate-200 dark:border-slate-700 text-left text-sm font-medium text-slate-500 dark:text-slate-400">
+                        <th class="pb-3 px-4">Question</th>
+                        <th class="pb-3 px-4">Context Precision</th>
+                        <th class="pb-3 px-4">Context Recall</th>
+                        <th class="pb-3 px-4">Faithfulness</th>
+                        <th class="pb-3 px-4">Answer Relevancy</th>
+                        <th class="pb-3 px-4">Latency (ms)</th>
+                        <th class="pb-3 px-4">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                    {% for r in results %}
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td class="py-4 px-4">
+                            <div class="max-w-xs">
+                                <p class="text-sm font-medium text-slate-900 dark:text-white truncate">{{ r.question }}</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 truncate">{{ r.answer[:100] }}...</p>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <div class="flex items-center gap-2">
+                                <div class="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                    <div class="h-full bg-primary-600 rounded-full" style="width: {{ r.context_precision * 100 }}%"></div>
+                                </div>
+                                <span class="text-sm font-mono text-slate-600 dark:text-slate-400 w-12">{{ "%.1f"|format(r.context_precision * 100) }}%</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <div class="flex items-center gap-2">
+                                <div class="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                    <div class="h-full bg-green-600 rounded-full" style="width: {{ r.context_recall * 100 }}%"></div>
+                                </div>
+                                <span class="text-sm font-mono text-slate-600 dark:text-slate-400 w-12">{{ "%.1f"|format(r.context_recall * 100) }}%</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <div class="flex items-center gap-2">
+                                <div class="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                    <div class="h-full bg-yellow-600 rounded-full" style="width: {{ r.faithfulness * 100 }}%"></div>
+                                </div>
+                                <span class="text-sm font-mono text-slate-600 dark:text-slate-400 w-12">{{ "%.1f"|format(r.faithfulness * 100) }}%</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <div class="flex items-center gap-2">
+                                <div class="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                    <div class="h-full bg-accent-600 rounded-full" style="width: {{ r.answer_relevancy * 100 }}%"></div>
+                                </div>
+                                <span class="text-sm font-mono text-slate-600 dark:text-slate-400 w-12">{{ "%.1f"|format(r.answer_relevancy * 100) }}%</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 text-sm font-mono text-slate-600 dark:text-slate-400">{{ r.latency_ms }}</td>
+                        <td class="py-4 px-4">
+                            {% if r.passed %}
+                            {{ ui.badge("Passed", variant="success") }}
+                            {% else %}
+                            {{ ui.badge("Failed", variant="danger") }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {{ ui.card_end() }}
+
+    <!-- Run Evaluation Button -->
+    <div class="flex justify-center">
+        <form hx-post="/api/eval/run" hx-target="#eval-status" hx-swap="innerHTML">
+            {{ ui.button("Run Evaluation", type="submit", variant="primary", size="lg", id="run-eval-btn") }}
+        </form>
+    </div>
+    <div id="eval-status" class="text-center mt-4"></div>
+</div>
+{% endblock %}

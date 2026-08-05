@@ -1,0 +1,12 @@
+# Shared Ruff config - all projects inherit this
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "T20", "SIM", "PIE", "PT", "PL", "TRY", "TD", "FA", "PD", "PG", "PYI", "TCH", "INT", "ARG", "PTH", "ERA", "RET", "FLY", "LOG", "PERF", "NPY", "RSE", "ASYNC", "DTZ", "EXE", "ISC", "ICN", "PLW", "QMD", "TID", "RUF", "AIR"]
+ignore = ["E501", "B008", "SIM102", "SIM117", "T201", "T203", "PLW0603", "PLW0604", "RUF012"]
+per-file-ignores = ["__init__.py:F401", "tests/*:S101", "tests/*:PLW0603", "tests/*:PLW0604"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false

@@ -1,0 +1,7 @@
+{% import "components.html" as ui %}
+
+{% set agg = results.aggregate %}
+{{ ui.flash(
+    "Evaluation finished — " ~ (agg.pass_rate * 100)|round(1) ~ "% pass rate across " ~ (results.results|length) ~ " questions. Reload the page to see the full results table.",
+    variant="success" if agg.pass_rate >= 0.7 else "warning"
+) }}

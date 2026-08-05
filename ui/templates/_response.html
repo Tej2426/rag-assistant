@@ -1,0 +1,36 @@
+{% import "components.html" as ui %}
+
+<div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-6 animate-fade-in">
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+            {{ ui.badge(model, variant="primary") }}
+            <span class="text-xs text-slate-400 dark:text-slate-500">{{ latency_ms }}ms</span>
+        </div>
+    </div>
+    <div class="prose max-w-none whitespace-pre-wrap">{{ answer }}</div>
+</div>
+
+{% if sources %}
+<div id="sources-panel" hx-swap-oob="true">
+    {{ ui.card(title="Retrieved Sources", subtitle=(sources|length ~ " chunks found")) }}
+        <div class="space-y-3 max-h-96 overflow-y-auto">
+            {% for source in sources %}
+            <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 animate-fade-in">
+                <div class="flex items-start justify-between gap-2 mb-2">
+                    <span class="text-xs font-medium text-primary-600 dark:text-primary-400">{{ source.heading }}</span>
+                    <span class="text-xs px-2 py-0.5 bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 rounded-full font-mono">
+                        {{ "%.3f"|format(source.score) }}
+                    </span>
+                </div>
+                <p class="text-sm text-slate-600 dark:text-slate-400 line-clamp-3 font-mono text-xs">{{ source.text[:300] }}{% if source.text|length > 300 %}...{% endif %}</p>
+                <div class="flex items-center gap-2 mt-2">
+                    <span class="text-xs text-slate-400 dark:text-slate-500">{{ source.source }}</span>
+                    <span class="text-xs text-slate-400 dark:text-slate-500">&bull;</span>
+                    <span class="text-xs text-slate-400 dark:text-slate-500">{{ source.chars }} chars</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {{ ui.card_end() }}
+</div>
+{% endif %}
