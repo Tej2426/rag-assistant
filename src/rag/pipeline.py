@@ -127,21 +127,32 @@ class RagPipeline:
     
     @track_operation("generate")
     async def generate(self, prompt: str, model: str | None = None, temperature: float = 0.1) -> str:
-        """Generate answer using the Groq API (OpenAI-compatible chat completions)."""
+        """Generate answer using the Groq API (OpenAI-compatible chat completions).
+
+        Retries on 429 (rate limit) with backoff - a transient provider
+        rate limit shouldn't surface as a 500 to the user when waiting a
+        couple seconds and retrying almost always succeeds."""
         model = model or config.GROQ_MODEL
+        max_retries = 3
 
         async with httpx.AsyncClient(timeout=config.GROQ_TIMEOUT) as client:
-            response = await client.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers={"Authorization": f"Bearer {config.GROQ_API_KEY}"},
-                json={
-                    "model": model,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": temperature,
-                },
-            )
-            response.raise_for_status()
-            return response.json()["choices"][0]["message"]["content"]
+            for attempt in range(max_retries):
+                response = await client.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {config.GROQ_API_KEY}"},
+                    json={
+                        "model": model,
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": temperature,
+                    },
+                )
+                if response.status_code == 429 and attempt < max_retries - 1:
+                    retry_after = float(response.headers.get("retry-after", 2 ** attempt))
+                    logger.warning("groq_rate_limited", attempt=attempt + 1, retry_after=retry_after)
+                    await asyncio.sleep(retry_after)
+                    continue
+                response.raise_for_status()
+                return response.json()["choices"][0]["message"]["content"]
     
     async def answer(
         self, 

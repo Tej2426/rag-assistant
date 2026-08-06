@@ -68,35 +68,40 @@ DEFAULT_DATASET = [
 ]
 
 
-@track_operation("run_evaluation")
-async def run_evaluation(
+async def run_evaluation_stream(
     pipeline: RagPipeline,
     dataset_name: str = "default",
     metrics: list[str] | None = None,
-) -> dict[str, Any]:
-    """Run evaluation on the RAG pipeline."""
+):
+    """Run evaluation on the RAG pipeline, yielding a progress event after
+    each question. A full run makes one pipeline call (retrieval +
+    generation) per question - worth several seconds each - so a caller
+    driving a progress bar needs per-question updates, not just a final
+    result after a silent wait."""
     metrics = metrics or ["context_precision", "context_recall", "faithfulness", "answer_relevancy"]
-    
+
     logger.info("evaluation_started", dataset=dataset_name, metrics=metrics)
-    
+
     dataset = DEFAULT_DATASET
     results = []
-    
-    for item in dataset:
+    total = len(dataset)
+
+    for i, item in enumerate(dataset, start=1):
         question = item["question"]
         expected_topics = item["expected_topics"]
-        
+
+        yield {"current": i, "total": total, "question": question, "stage": "querying"}
         response = await pipeline.answer(question, top_k=4)
-        
+
         retrieved_texts = [chunk.text for chunk in response.sources]
-        
+
         context_precision = _calc_context_precision(retrieved_texts, expected_topics)
         context_recall = _calc_context_recall(retrieved_texts, expected_topics)
         faithfulness = _calc_faithfulness(response.answer, retrieved_texts)
         answer_relevancy = _calc_answer_relevancy(response.answer, question)
-        
+
         passed = all(m >= 0.5 for m in [context_precision, context_recall, faithfulness, answer_relevancy])
-        
+
         result = {
             "question": question,
             "answer": response.answer,
@@ -109,7 +114,8 @@ async def run_evaluation(
             "passed": passed,
         }
         results.append(result)
-        
+        yield {"current": i, "total": total, "question": question, "stage": "scored", "passed": passed}
+
         logger.info(
             "eval_item_completed",
             question=question[:50],
@@ -119,7 +125,7 @@ async def run_evaluation(
             answer_relevancy=answer_relevancy,
             passed=passed,
         )
-    
+
     aggregate = {
         "context_precision": sum(r["context_precision"] for r in results) / len(results),
         "context_recall": sum(r["context_recall"] for r in results) / len(results),
@@ -127,24 +133,39 @@ async def run_evaluation(
         "answer_relevancy": sum(r["answer_relevancy"] for r in results) / len(results),
         "pass_rate": sum(1 for r in results if r["passed"]) / len(results),
     }
-    
+
     output_dir = Path("eval/results")
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     output = {
         "dataset": dataset_name,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "aggregate": aggregate,
         "results": results,
     }
-    
+
     async with aiofiles.open(output_dir / "latest.json", "w") as f:
         await f.write(json.dumps(output, indent=2))
-    
+
     async with aiofiles.open(output_dir / f"{dataset_name}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json", "w") as f:
         await f.write(json.dumps(output, indent=2))
-    
+
     logger.info("evaluation_completed", aggregate=aggregate)
+    yield {"done": True, "output": output}
+
+
+@track_operation("run_evaluation")
+async def run_evaluation(
+    pipeline: RagPipeline,
+    dataset_name: str = "default",
+    metrics: list[str] | None = None,
+) -> dict[str, Any]:
+    """Non-streaming convenience wrapper - runs the generator to
+    completion and returns the final aggregate output."""
+    output = None
+    async for event in run_evaluation_stream(pipeline, dataset_name, metrics):
+        if event.get("done"):
+            output = event["output"]
     return output
 
 

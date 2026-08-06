@@ -3,10 +3,11 @@ API Routes for RAG Assistant.
 """
 
 
+import json
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Form, Query, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from src.rag.pipeline import RagPipeline
@@ -177,6 +178,27 @@ async def run_evaluation(
         "request": request,
         "results": results,
     })
+
+
+@router.get("/eval/run/stream", tags=["eval"])
+@limiter.limit("5/minute")
+async def run_evaluation_stream_endpoint(
+    request: Request,
+    dataset: str = Query("default"),
+    rag: RagPipeline = Depends(get_pipeline),
+):
+    """Server-Sent Events stream of eval progress - one event per question
+    per stage, so the eval dashboard can show a live progress bar instead
+    of a blank wait during a run that takes well over a minute."""
+    from src.eval.runner import run_evaluation_stream
+
+    logger.info("api_eval_run_stream", dataset=dataset)
+
+    async def event_source():
+        async for event in run_evaluation_stream(rag, dataset):
+            yield f"data: {json.dumps(event)}\n\n"
+
+    return StreamingResponse(event_source(), media_type="text/event-stream")
 
 
 @router.get("/eval/results", tags=["eval"])

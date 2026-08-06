@@ -130,10 +130,55 @@
 
     <!-- Run Evaluation Button -->
     <div class="flex justify-center">
-        <form hx-post="/api/eval/run" hx-target="#eval-status" hx-swap="innerHTML">
-            {{ ui.button("Run Evaluation", type="submit", variant="primary", size="lg", id="run-eval-btn") }}
-        </form>
+        {{ ui.button("Run Evaluation", type="button", variant="primary", size="lg", id="run-eval-btn", onclick="startEvalRun()") }}
     </div>
-    <div id="eval-status" class="text-center mt-4"></div>
+
+    <div id="eval-progress" class="hidden max-w-xl mx-auto mt-6 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5">
+        <div class="flex items-center justify-between text-sm mb-2">
+            <span id="eval-status-text" class="text-slate-600 dark:text-slate-300">Starting…</span>
+            <span id="eval-count" class="text-slate-400 dark:text-slate-500 font-mono"></span>
+        </div>
+        <div class="h-2 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+            <div id="eval-bar" class="h-full bg-primary-600 transition-all duration-300" style="width: 0%"></div>
+        </div>
+    </div>
 </div>
+
+<script>
+    function startEvalRun() {
+        const btn = document.getElementById('run-eval-btn');
+        const box = document.getElementById('eval-progress');
+        const bar = document.getElementById('eval-bar');
+        const status = document.getElementById('eval-status-text');
+        const count = document.getElementById('eval-count');
+
+        btn.disabled = true;
+        box.classList.remove('hidden');
+        bar.style.width = '0%';
+        status.textContent = 'Starting…';
+        count.textContent = '';
+
+        const source = new EventSource('/api/eval/run/stream');
+        source.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if (data.done) {
+                status.textContent = 'Done — refreshing results…';
+                bar.style.width = '100%';
+                source.close();
+                setTimeout(() => window.location.reload(), 500);
+                return;
+            }
+            const pct = Math.round((data.current / data.total) * 100);
+            bar.style.width = pct + '%';
+            count.textContent = `${data.current} / ${data.total}`;
+            const stageLabel = data.stage === 'querying' ? 'Running pipeline' : 'Scored';
+            status.textContent = `${stageLabel}: "${data.question}"`;
+        };
+        source.onerror = () => {
+            status.textContent = 'Connection lost — check server logs.';
+            source.close();
+            btn.disabled = false;
+        };
+    }
+</script>
 {% endblock %}
