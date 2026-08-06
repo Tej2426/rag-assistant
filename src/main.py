@@ -67,12 +67,10 @@ templates = Jinja2Templates(directory="ui/templates")
 @app.get("/", response_class=HTMLResponse, tags=["ui"])
 async def index(request: Request):
     """Landing page."""
-    return templates.TemplateResponse(request, "rag_layout.html", {
+    return templates.TemplateResponse(request, "index.html", {
         "request": request,
         "PROJECT_NAME": config.APP_NAME,
         "APP_VERSION": config.APP_VERSION,
-        "page_title": "httpx Codebase & Docs Q&A Assistant",
-        "page_description": "Ask questions about the httpx source code and documentation, and get grounded answers with citations.",
     })
 
 
