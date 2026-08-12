@@ -160,6 +160,13 @@ actually running the code, not just reading it:
 - **Groq 429 rate limits crashed requests** with an unhandled 500 instead
   of retrying — fixed with exponential backoff, a real production
   resilience gap that would affect actual usage, not just a demo path.
+- **`/metrics` had never actually worked** — its handler took an
+  untyped `request` parameter, which FastAPI interpreted as a required
+  query string field rather than the HTTP request object, so every call
+  returned a 422. Found while auditing the project for this case study,
+  not during original development — a reminder that "the code runs" and
+  "every endpoint works" aren't the same claim without actually
+  exercising each one.
 
 Each was found by actually running the app end-to-end and reading the
 real traceback, not by inspecting code statically — a running app text at
@@ -183,9 +190,14 @@ real traceback, not by inspecting code statically — a running app text at
   original FastAPI-docs version and were not migrated to the new corpus —
   kept as the "how RAG actually works" reference, not a second
   maintained implementation
-- README's Quick Start section still describes the original Ollama +
-  docker-compose setup from before the Groq migration — flagged here as
-  a known documentation gap, not yet corrected in the README itself
+- (Resolved during the case-study retrofit pass) README and
+  `docker-compose.yml` originally still described the pre-Groq Ollama +
+  remote-Chroma-server setup, which the app hadn't actually used since
+  the Groq migration. Also surfaced a genuine, previously-undetected bug
+  in the process: `/metrics` had never worked — its handler's `request`
+  parameter had no type annotation, so FastAPI treated it as a required
+  query string field instead of the actual HTTP request object, a 422 on
+  every call. Both fixed and verified live.
 
 ## Future Roadmap (Phase 2)
 

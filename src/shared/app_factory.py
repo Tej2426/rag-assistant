@@ -5,7 +5,7 @@ All projects use this to create their app with consistent middleware, routes, an
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -82,7 +82,7 @@ def create_app(
     # Metrics endpoint
     if include_metrics and config.PROMETHEUS_ENABLED:
         @app.get("/metrics", tags=["monitoring"], include_in_schema=False)
-        async def metrics(request):
+        async def metrics(request: Request):
             return await metrics_endpoint(request)
     
     # Auth dependency for protected routes

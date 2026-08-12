@@ -51,13 +51,13 @@ graph TB
 
 ### Prerequisites
 - Docker & Docker Compose
-- 8GB+ RAM (for Ollama models)
+- A free Groq API key ([console.groq.com/keys](https://console.groq.com/keys))
 
 ### 1. Clone & Configure
 ```bash
 git clone https://github.com/Tej2426/rag-assistant.git
 cd rag-assistant
-cp .env.example .env  # Edit if needed
+cp .env.example .env  # set GROQ_API_KEY (and optionally API_KEY)
 ```
 
 ### 2. Start Services
@@ -66,15 +66,17 @@ docker compose up -d
 ```
 
 This starts:
-- **rag-assistant** (FastAPI) — http://localhost:8000
-- **Chroma** (Vector DB) — http://localhost:8001
-- **Ollama** (LLM) — http://localhost:11434
+- **rag-assistant** (FastAPI) — http://localhost:8000 — Chroma runs
+  embedded in-process here, not as a separate service
 - **Prometheus** — http://localhost:9090
 - **Grafana** — http://localhost:3000 (admin/admin)
 
+Generation is via the hosted Groq API, not a local model — no GPU or
+extra service required.
+
 ### 3. Ingest Documentation
 ```bash
-# Chunk documents
+# Chunk documents (docs + source code)
 docker compose exec rag-assistant python -m src.ingestion.chunker
 
 # Generate embeddings
@@ -97,9 +99,9 @@ curl -X POST http://localhost:8000/api/query \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-api-key" \
   -d '{
-    "question": "How do I validate a query parameter in FastAPI?",
+    "question": "What is the difference between httpx.Client and httpx.AsyncClient?",
     "top_k": 4,
-    "model": "phi3:mini",
+    "model": "llama-3.3-70b-versatile",
     "temperature": 0.1
   }'
 ```
@@ -107,28 +109,27 @@ curl -X POST http://localhost:8000/api/query \
 **Response:**
 ```json
 {
-  "answer": "In FastAPI, you validate query parameters using the `Query` class...",
+  "answer": "httpx.Client is synchronous; httpx.AsyncClient is asynchronous and designed for use with async/await...",
   "sources": [
     {
-      "id": "tutorial_query-params::2",
-      "text": "To declare a query parameter with validation...",
-      "heading": "Query Parameters and String Validations",
-      "source": "tutorial_query-params",
-      "score": 0.923,
-      "chars": 542
+      "id": "docs::async::0",
+      "text": "...",
+      "heading": "Async Support",
+      "source": "docs/async",
+      "score": 0.87,
+      "chars": 480
     }
   ],
-  "latency_ms": 1247,
-  "model": "phi3:mini",
+  "latency_ms": 950,
+  "model": "llama-3.3-70b-versatile",
   "request_id": "a1b2c3d4"
 }
 ```
 
 ### Run Evaluation
 ```bash
-curl -X POST http://localhost:8000/api/eval/run \
-  -H "X-API-Key: your-api-key" \
-  -d '{"dataset": "default"}'
+# streams live progress via Server-Sent Events (used by the /eval dashboard)
+curl -N http://localhost:8000/api/eval/run/stream
 ```
 
 ---
@@ -184,7 +185,7 @@ All configuration via environment variables (`.env`):
 
 ```bash
 # Application
-APP_NAME=RAG Document Q&A Assistant
+APP_NAME=httpx Codebase & Docs Q&A Assistant
 APP_VERSION=0.1.0
 ENVIRONMENT=development
 DEBUG=true
@@ -202,15 +203,13 @@ RATE_LIMIT_WINDOW=60
 LOG_LEVEL=INFO
 LOG_FORMAT=console  # or "json"
 
-# Chroma
-CHROMA_HOST=chromadb
-CHROMA_PORT=8000
-CHROMA_COLLECTION=fastapi_docs
+# Chroma - embedded in-process (PersistentClient), just a collection name
+CHROMA_COLLECTION=httpx_kb
 
-# Ollama
-OLLAMA_HOST=http://ollama:11434
-OLLAMA_MODEL=phi3:mini
-OLLAMA_TIMEOUT=300
+# Groq (hosted LLM API - get a free key at console.groq.com/keys)
+GROQ_API_KEY=
+GROQ_MODEL=llama-3.3-70b-versatile
+GROQ_TIMEOUT=60
 
 # Embeddings
 EMBEDDING_MODEL=all-MiniLM-L6-v2
